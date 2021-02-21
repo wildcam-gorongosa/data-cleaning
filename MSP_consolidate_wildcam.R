@@ -1,5 +1,6 @@
 rm(list=ls())
 setwd("~/Desktop/Grad School/Post doc_Princeton/Mozambique/Data_Kaitlyn/Camera Trap Data/Processed camera data")
+library(lubridate)
 
 ## DATA 
 
@@ -16,7 +17,7 @@ dat3$Classifier <- paste("KG/Undergrads +", dat3$Classifier)
 dat3$Orig_Species <- NULL; dat3$Date <- NULL; dat3$Time <- NULL; dat3$delta.time.secs <- NULL; 
 dat3$delta.time.days <- NULL; dat3$delta.time.hours <- NULL; dat3$delta.time.mins <- NULL
 names(dat3)[c(2:14)] <- c("site", "species", "datetime", "count", "juvenile", "moving", "eating", 
-                         "resting", "standing", "interacting", "male", "directory", "filename")
+                          "resting", "standing", "interacting", "male", "directory", "filename")
 dat3$datetime <- strptime(dat3$datetime, "%m/%d/%y %H:%M")
 dat3$date <- substr(dat3$datetime, 1, 10)
 dat3$time <- substr(dat3$datetime, 12, 19)
@@ -64,6 +65,11 @@ dat4$interacting <- ifelse(dat4$interacting > 0.1, 1, 0)
 dat4$juvenile <- ifelse(dat4$juvenile > 0.1, 1, 0)
 dat4$juvenile_count <- NA
 
+# some invalid timestamps in Zooniverse data that I correct in my data 
+dat4 <- dat4[!(dat4$site == "B09" & year(dat4$datetime)  > 2020),]
+dat4 <- dat4[!(dat4$site == "I10" & year(dat4$datetime)  > 2020),]
+dat4 <- dat4[!(dat4$site == "B07" & year(dat4$date) > 2019),]
+
 # MSP classifications 
 dat1 <- read.csv("wildcam_year3_additionaldata.csv")
 dat2 <- read.csv("wildcam_year4_additionaldata.csv")
@@ -83,7 +89,6 @@ dat6$time <- substr(dat6$datetime, 12, 19)
 dat6$capture_date <- NULL; dat6$capture_time <- NULL
 names(dat6)[1] <- "site"
 dat6$directory <- NA; dat6$filename <- NA
-dat7$male_count <- NA
 
 dat7 <- rbind(dat5, dat6); rm(dat5); rm(dat6)
 dat7$Classifier <- "MSP"
@@ -131,7 +136,7 @@ x[x$species %in% c("setup"),]$species <- "human"
 x[x$species %in% c("black", "white"),]$species <- "invalid"
 x <- x[!is.na(x$species),]
 x[x$species == "ghost",]$species <- "unknown" 
-x[x$species %in% c("no baboon", "no babbons", "no baboons", "no elephant", "no waterbuck", "no image", "no bushbuck"),]$species <- "invalid"
+x[x$species %in% c("no baboon", "no babbons", "no baboons", "no elephant", "no waterbuck", "no image", "no bushbuck", "no impala", "no nyala", "no warthog"),]$species <- "invalid"
 
 # remove invalid images
 x <- x[!x$species == "invalid",]
@@ -164,3 +169,35 @@ dat4[is.na(dat4)] <- ""
 # save 
 write.csv(dat4, "Camera_operation_year1-4.csv", row.names=F)
 
+
+## expanding search effort from camtrapR to full 
+library(dplyr); library(Hmisc); library(lubridate)
+
+effort <- read.csv("Camera_operation_year1-4.csv") %>% select(-Notes)
+datify <- function(x){strptime(x, "%m/%d/%y", tz="Africa/Maputo")}
+
+effort_full <- NULL 
+for(i in 1:nrow(effort)){
+    sub <- effort[i,]; sub <- sub[!sapply(sub, function(x) all(x == ""))]
+    
+    if(length(sub) == 3){
+        sub.seq <- seq(datify(sub$Start), datify(sub$End), 'days')
+    } else if(length(sub) == 5){
+        sub.seq <- c(seq(datify(sub$Start), datify(sub$Problem1_from),'days'), 
+                     seq(datify(sub$Problem1_to), datify(sub$End),'days'))
+    } else if(length(sub) == 7){ 
+        sub.seq <- c(seq(datify(sub$Start), datify(sub$Problem1_from), 'days'), 
+                     seq(datify(sub$Problem1_to), datify(sub$Problem2_from), 'days'), 
+                     seq(datify(sub$Problem2_to), datify(sub$End),'days'))
+    } else if(length(sub) == 9){
+        sub.seq <- c(seq(datify(sub$Start), datify(sub$Problem1_from), 'days'), 
+                     seq(datify(sub$Problem1_to), datify(sub$Problem2_from), 'days'), 
+                     seq(datify(sub$Problem2_to), datify(sub$Problem3_from), 'days'),
+                     seq(datify(sub$Problem3_to), datify(sub$End), 'days'))
+    }
+    
+    effort.frame <- data.frame(site = as.character(sub$Camera), date = sub.seq)
+    effort_full <- rbind(effort_full, effort.frame)
+}
+
+write.csv(effort_full, "~/Desktop/wildcam_fulleffort_2019.csv", row.names=F)

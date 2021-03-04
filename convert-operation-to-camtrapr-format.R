@@ -27,6 +27,32 @@ all_years <- year12 %>%
            Problem2_from_3 = NA, # create year 3 Problem 2 NA columns to be filled in the next section
            Problem2_to_3 = NA) 
 
+##########################################################################################
+# For cameras with year 4 data but no year 3 data, move the year 4 over to year 3
+
+for (i in 1:nrow(all_years)) {
+    
+    # if there are data for year 4 but not year 3
+    if(is.na(all_years$Start_3[i]) == TRUE & is.na(all_years$Start_4[i]) == FALSE) {
+        
+        # move everything from year 4 to year 3
+        all_years$Start_3[i] <- all_years$Start_4[i]
+        all_years$End_3[i] <- all_years$End_4[i]
+        all_years$Problem1_from_3[i] <- all_years$Problem1_from_4[i]
+        all_years$Problem1_to_3[i] <- all_years$Problem1_to_4[i]
+        all_years$Notes_3[i] <- all_years$Notes_4[i]
+        
+        # replace year 4 with blanks
+        all_years$Start_4[i] <- NA
+        all_years$End_4[i] <- NA
+        all_years$Problem1_from_4[i] <- NA
+        all_years$Problem1_to_4[i] <- NA
+        all_years$Notes_4[i] <- NA
+        
+    }
+    
+}
+
 
 ##########################################################################################
 # Add problems if there are gaps between end of one year and start of next

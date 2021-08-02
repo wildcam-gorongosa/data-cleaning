@@ -1,7 +1,11 @@
 ## Explore different methods for thinning data to independent records
 
+# import data
+wildcam_fulldata_2019 <- read.csv("2019-data/wildcam_fulldata_2019.csv") # data
 
 # KG method ---------------------------------------------------------------
+
+records <- wildcam_fulldata_2019
 
 # sort records by station, species, then time
 records <- records[order(records$Camera, records$species, records$datetime),]
@@ -32,15 +36,11 @@ for (i in 2:nrow(records)) {
 
 # MP method ---------------------------------------------------------------
 
-# import data
-fulldat <- read.csv("wildcam_fulldata_2019.csv") # data
-fullse <- read.csv("wildcam_fulleffort_2019.csv") # search effort 
+fulldat <- wildcam_fulldata_2019
 
 # fix date-times
 fulldat$Date <- strptime(fulldat$date, "%Y-%m-%d")
 fulldat$Date <- as.Date(fulldat$Date); fulldat$date <- NULL
-fullse$Date <- strptime(fullse$date, "%Y-%m-%d")
-fullse$Date <- as.Date(fullse$Date); fullse$date <- NULL
 
 # remove duplicate sightings (15 mins independence interval)
 fulldat$datetime <- strptime(fulldat$datetime, "%Y-%m-%d %H:%M:%S")
